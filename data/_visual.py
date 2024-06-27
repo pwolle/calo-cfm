@@ -86,7 +86,7 @@ def main():
 
     import h5py
 
-    path = "raw/ddsim_mesh_Par04_gamma_500events_1GeV1TeV_GPSflat_edm4hep_12388001_part1.h5"
+    path = "data/raw/ddsim_mesh_Par04_gamma_500events_1GeV1TeV_GPSflat_edm4hep_12388001_part1.h5"
 
     with h5py.File(path, "r") as f:
         showers = f["showers"]  # type: ignore

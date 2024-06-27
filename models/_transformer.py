@@ -48,7 +48,7 @@ def fourier_embedding(x, n):
     n = n // 2
 
     x = x[..., None]
-    x = x * jnp.pi * jnp.arange(1, n + 1) / 2
+    x = x * jnp.pi * jnp.minimum(jnp.arange(1, n + 1), 8) / 2
 
     s = jnp.sin(x)
     c = jnp.cos(x)
@@ -106,6 +106,7 @@ def attention_matrix(
     k: Float[Array, "*b k d"],
 ) -> Float[Array, "*b q k"]:
     q = q * jnp.sqrt(q.shape[-1])
+    print(jnp.any(jnp.isnan(q)), jnp.any(jnp.isnan(k)))
     a = jnp.einsum("...qd,...kd->...qk", q, k)
     a = jnn.softmax(a, axis=-1)
     return a
@@ -158,7 +159,7 @@ class MultiHeadAttention(fj.Module, replace=True):
     def __call__(
         self, x: Float[Array, "*b q {self.dim}"]
     ) -> Float[Array, "*b q {self.dim}"]:
-        x = self.norm(x)
+        # x = self.norm(x)
 
         qkv = self.watt(x)
         q, k, v = jnp.split(qkv, 3, axis=-1)
@@ -178,7 +179,6 @@ def transformer_block(key, dim, dim_att):
     return fn.Sequential(
         (
             MultiHeadAttention.init(key1, dim, dim_att),
-            fn.LayerNorm.init(dim),
             fn.Linear.init(key2, dim, dim * 4),
             fn.GELU(),
             fn.Linear.init(key3, dim * 4, dim),
@@ -233,14 +233,14 @@ class Transformer(fj.Module, replace=True):
 def main():
 
     key = jrandom.PRNGKey(0)
-    model = Transformer.init(key, 32, 4, (3, 2, 5), 1)
+    model = Transformer.init(key, 128, 8, (3, 2, 5), 4)
 
     x = jnp.arange(9 * 16 * 45).reshape((9, 16, 45))
     t = jnp.ones((1, 1, 1))
 
     y = model(x, t)
 
-    print(y.shape)
+    print(y)
 
 
 if __name__ == "__main__":

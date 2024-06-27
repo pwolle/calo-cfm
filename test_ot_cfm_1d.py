@@ -11,6 +11,10 @@ import optax
 import tqdm
 from jaxtyping import PRNGKeyArray
 
+from jax.lib import xla_bridge
+
+print(xla_bridge.get_backend().platform)
+
 
 @functools.partial(jax.jit, static_argnames=("batch_size",))
 def sample_source(key: PRNGKeyArray, batch_size: int = 1024) -> jax.Array:
