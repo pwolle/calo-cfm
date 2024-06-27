@@ -5,12 +5,31 @@ import numpy as np
 from mpl_toolkits.mplot3d import Axes3D
 
 
-def plot_shower(shower):
+def explode(data):
+    size = np.array(data.shape) * 2
+    data_e = np.zeros(size - 1, dtype=data.dtype)
+    data_e[::2, ::2, ::2] = data
+    return data_e
+
+
+def linspace_with_gaps(start, stop, num, gap=0):
+    lin = np.linspace(start, stop - gap, num // 2)
+
+    dif = lin[1] - lin[0]
+    with_gap = np.zeros(num)
+
+    with_gap[0::2] = lin
+    with_gap[1::2] = lin + dif - gap
+
+    return with_gap
+
+
+def plot_shower2(shower):
     r_dim, thet_dim, z_dim = shower.shape
 
-    r_grid = np.linspace(0, 1, r_dim + 1)
-    theta_grid = np.linspace(0, 2 * np.pi, thet_dim + 1)
-    z_grid = np.linspace(-1, 1, z_dim + 1)
+    r_grid = linspace_with_gaps(0, 1, r_dim + 1)
+    theta_grid = linspace_with_gaps(0, 2 * np.pi, thet_dim + 1)
+    z_grid = linspace_with_gaps(-1, 1, z_dim + 1)
 
     R, Theta, Z = np.meshgrid(r_grid, theta_grid, z_grid, indexing="ij")
 
@@ -32,7 +51,7 @@ def plot_shower(shower):
     alpha = alpha / np.max(alpha)
     colors[..., 3] = alpha
 
-    fig = plt.figure()
+    fig = plt.figure(figsize=(6, 6))
     ax: Axes3D = fig.add_subplot(111, projection="3d")  # type: ignore
 
     # Use ax.voxels to plot the voxels
@@ -40,9 +59,8 @@ def plot_shower(shower):
         X,
         Y,
         Z,
-        shower > 0.01,
+        shower > 0.05,
         facecolors=colors,
-        edgecolors=colors,
         shade=False,
     )
 
@@ -75,7 +93,9 @@ def main():
         i = random.randint(0, len(showers))  # type: ignore
         shower: np.ndarray = showers[i]  # type: ignore
 
-    plot_shower(shower=shower)  # [::2, ::2, ::2])
+    print(shower.shape)
+    shower = explode(shower)
+    plot_shower2(shower=shower)
     plt.show()
 
 
