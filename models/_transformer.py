@@ -53,7 +53,8 @@ def fourier_embedding(x, n):
     s = jnp.sin(x)
     c = jnp.cos(x)
 
-    return jnp.concatenate([s, c], axis=-1)
+    y = jnp.concatenate([s, c], axis=-1)
+    return jnp.zeros_like(y)
 
 
 class Embedding(fj.Module, replace=True):
@@ -102,22 +103,20 @@ class Embedding(fj.Module, replace=True):
 
 @jaxtyped(typechecker=fj.typecheck)
 def attention_matrix(
-    q: Float[Array, "*b q d"],
-    k: Float[Array, "*b k d"],
-) -> Float[Array, "*b q k"]:
-    q = q * jnp.sqrt(q.shape[-1])
-    print(jnp.any(jnp.isnan(q)), jnp.any(jnp.isnan(k)))
-    a = jnp.einsum("...qd,...kd->...qk", q, k)
+    q: Float[Array, "q d"],
+    k: Float[Array, "k d"],
+) -> Float[Array, "q k"]:
+    a = q @ k.T
     a = jnn.softmax(a, axis=-1)
     return a
 
 
 @jaxtyped(typechecker=fj.typecheck)
 def attention(
-    q: Float[Array, "*b q d"],
-    k: Float[Array, "*b k d"],
-    v: Float[Array, "*b k d"],
-) -> Float[Array, "*b q d"]:
+    q: Float[Array, "q d"],
+    k: Float[Array, "k d"],
+    v: Float[Array, "k d"],
+) -> Float[Array, "q d"]:
     a = attention_matrix(q, k)
     a = jnp.einsum("...qk,...kd->...qd", a, v)
     return a
@@ -127,7 +126,6 @@ class MultiHeadAttention(fj.Module, replace=True):
     __module_name = "calo-cfm.Attention"
 
     watt: fn.Linear
-    norm: fn.LayerNorm
     dim_att: int = fj.field(static=True)
 
     @classmethod
@@ -143,7 +141,6 @@ class MultiHeadAttention(fj.Module, replace=True):
                 dim * 3,
                 use_bias=False,
             ),
-            norm=fn.LayerNorm.init(dim),
             dim_att=dim_att,
         )
 
@@ -159,8 +156,6 @@ class MultiHeadAttention(fj.Module, replace=True):
     def __call__(
         self, x: Float[Array, "*b q {self.dim}"]
     ) -> Float[Array, "*b q {self.dim}"]:
-        # x = self.norm(x)
-
         qkv = self.watt(x)
         q, k, v = jnp.split(qkv, 3, axis=-1)
 
@@ -168,7 +163,7 @@ class MultiHeadAttention(fj.Module, replace=True):
         k = k.reshape(k.shape[:-1] + (self.nheads, self.dim_att))
         v = v.reshape(v.shape[:-1] + (self.nheads, self.dim_att))
 
-        r = attention(q, k, v)
+        r = jax.vmap(attention)(q, k, v)
         r = r.reshape(r.shape[:-2] + (self.nheads * self.dim_att,))
 
         return r + x
@@ -178,6 +173,7 @@ def transformer_block(key, dim, dim_att):
     key1, key2, key3 = jrandom.split(key, 3)
     return fn.Sequential(
         (
+            fn.LayerNorm.init(dim),
             MultiHeadAttention.init(key1, dim, dim_att),
             fn.Linear.init(key2, dim, dim * 4),
             fn.GELU(),

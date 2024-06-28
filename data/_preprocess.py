@@ -8,20 +8,23 @@ import memmpy
 import numba
 import numpy as np
 
+import matplotlib.pyplot as plt
 
-@numba.jit(nopython=True)
+
 def elementwise_preprocess(x, k=4):
     for _ in range(k):
         x = np.log(x + 1)
 
-    x = x * (2 / 1.038)
+    x = np.nan_to_num(x, nan=0.0, posinf=0.0, neginf=0.0)
+    x = x * (2 / 0.74)
     x = x - 1
+
     return x
 
 
 def elementwise_preprocess_inv(x, k=4):
     x = x + 1
-    x = x * (1.038 / 2)
+    x = x * (0.8 / 2)
 
     for _ in range(k):
         x = np.exp(x) - 1
@@ -54,7 +57,9 @@ def preprocess(write_path, read_path):
             shape = f["showers"].shape[1:]  # type: ignore
 
         array = np.memmap(write_file, dtype=np.float32, mode="r")
-        return array.reshape(-1, *shape)
+        array = array.reshape(-1, *shape)
+        print(array.shape)
+        return array
 
     vector = memmpy.Vector()
 
@@ -67,11 +72,12 @@ def preprocess(write_path, read_path):
                 x = showers[s:e]  # type: ignore
                 x = elementwise_preprocess(x)
 
-                print(e)
                 vector.extend(x)
+
+            break
 
     vector.save(write_file)
     return preprocess(write_path, read_path)
 
 
-# preprocess("raw", "raw/*.h5").shape[0] / 1e6
+# preprocess("data/raw", "data/raw/*.h5")
