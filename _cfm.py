@@ -14,7 +14,7 @@ from models import Transformer
 import numpy as onp
 
 
-jax.config.update("jax_debug_nans", True)
+# jax.config.update("jax_debug_nans", True)
 
 
 def spaced_uniform(key: PRNGKeyArray, n: int) -> jax.Array:
@@ -65,10 +65,12 @@ for _ in range(10):
     for i, indicies in enumerate(tqdm(batch_indicies, total=int(len(data) * 0.9 / 32))):
         indicies = shuffle(indicies)
         batch = data[indicies]
-        batch = onp.nan_to_num(batch, nan=0.0, posinf=0.0, neginf=0.0)
 
         loss, model, opt_state = train_step(key, model, batch, opt_state)
         losses.append(loss)
+
+        if i % 100 == 0:
+            print(batch.min(), batch.max(), loss)
 
 
 fj.save("model.npz", model)

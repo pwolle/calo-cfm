@@ -15,7 +15,7 @@ def elementwise_preprocess(x, k=4):
     for _ in range(k):
         x = np.log(x + 1)
 
-    x = np.nan_to_num(x, nan=0.0, posinf=0.0, neginf=0.0)
+    # x = np.nan_to_num(x, nan=0.0, posinf=0.0, neginf=0.0)
     x = x * (2 / 0.74)
     x = x - 1
 
