@@ -24,7 +24,11 @@ def linspace_with_gaps(start, stop, num, gap=0):
     return with_gap
 
 
-def plot_shower2(shower):
+def plot_shower(shower):
+    shower = shower - np.min(shower)
+    shower = shower / np.max(shower)
+    shower = explode(shower)
+
     r_dim, thet_dim, z_dim = shower.shape
 
     r_grid = linspace_with_gaps(0, 1, r_dim + 1)
@@ -47,19 +51,18 @@ def plot_shower2(shower):
     colors[..., :3] = rgb_colors
 
     alpha = shower
-    alpha = alpha - np.min(shower)
-    alpha = alpha / np.max(alpha)
     colors[..., 3] = alpha
 
     fig = plt.figure(figsize=(6, 6))
     ax: Axes3D = fig.add_subplot(111, projection="3d")  # type: ignore
 
     # Use ax.voxels to plot the voxels
+    print(np.mean(alpha))
     ax.voxels(  # type: ignore
         X,
         Y,
         Z,
-        shower > 0.05,
+        alpha > 0.01,
         facecolors=colors,
         shade=False,
     )
@@ -83,19 +86,13 @@ def plot_shower2(shower):
 
 def main():
     import random
+    from _preprocess import preprocess
 
-    import h5py
+    showers = preprocess("raw/", "raw/*.h5")
+    i = random.randint(0, len(showers))
+    shower = showers[i]
 
-    path = "data/raw/ddsim_mesh_Par04_gamma_500events_1GeV1TeV_GPSflat_edm4hep_12388001_part1.h5"
-
-    with h5py.File(path, "r") as f:
-        showers = f["showers"]  # type: ignore
-        i = random.randint(0, len(showers))  # type: ignore
-        shower: np.ndarray = showers[i]  # type: ignore
-
-    print(shower.shape)
-    shower = explode(shower)
-    plot_shower2(shower=shower)
+    plot_shower(shower[..., ::5])
     plt.show()
 
 

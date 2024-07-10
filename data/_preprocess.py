@@ -5,29 +5,32 @@ import os
 
 import h5py
 import memmpy
-import numba
 import numpy as np
 
 import matplotlib.pyplot as plt
 
+from tqdm import tqdm
 
-def elementwise_preprocess(x, k=4):
+
+def elementwise_preprocess(x, k=1):
+
     for _ in range(k):
-        x = np.log(x + 1)
+        x = x + 1
+        x = np.log(x)
 
-    # x = np.nan_to_num(x, nan=0.0, posinf=0.0, neginf=0.0)
-    x = x * (2 / 0.74)
+    x = x * (2 / 5.3)
     x = x - 1
 
     return x
 
 
-def elementwise_preprocess_inv(x, k=4):
+def elementwise_preprocess_inv(x, k=1):
     x = x + 1
-    x = x * (0.8 / 2)
+    x = x * (5.3 / 2)
 
     for _ in range(k):
-        x = np.exp(x) - 1
+        x = np.exp(x)
+        x = x - 1
 
     return x
 
@@ -63,16 +66,24 @@ def preprocess(write_path, read_path):
 
     vector = memmpy.Vector()
 
-    for path in glob.glob(read_path):
+    for path in tqdm(glob.glob(read_path)):
         with h5py.File(path, "r") as f:
             showers = f["showers"]
             n = len(showers)  # type: ignore
 
-            for s, e in memmpy.batch_slices(n, 1024 * 32, False):
+            for s, e in memmpy.batch_slices(n, 1024 * 8, False):
                 x = showers[s:e]  # type: ignore
-                x = elementwise_preprocess(x)
+
+                x = np.maximum(x, 0)
+                x = np.log(1 + x) / (5.25 / 2)
+                x = np.nan_to_num(x, nan=0, posinf=0, neginf=0)
+
+                x = x - 1
+                x = np.clip(x, -1, 1)
+                x = x.astype(np.float32)
 
                 vector.extend(x)
+                break
 
             break
 
@@ -80,4 +91,4 @@ def preprocess(write_path, read_path):
     return preprocess(write_path, read_path)
 
 
-# preprocess("data/raw", "data/raw/*.h5")
+preprocess("raw", "raw/*.h5")
