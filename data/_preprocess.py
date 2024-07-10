@@ -6,33 +6,7 @@ import os
 import h5py
 import memmpy
 import numpy as np
-
-import matplotlib.pyplot as plt
-
 from tqdm import tqdm
-
-
-def elementwise_preprocess(x, k=1):
-
-    for _ in range(k):
-        x = x + 1
-        x = np.log(x)
-
-    x = x * (2 / 5.3)
-    x = x - 1
-
-    return x
-
-
-def elementwise_preprocess_inv(x, k=1):
-    x = x + 1
-    x = x * (5.3 / 2)
-
-    for _ in range(k):
-        x = np.exp(x)
-        x = x - 1
-
-    return x
 
 
 def hash_glob(path):
@@ -91,4 +65,5 @@ def preprocess(write_path, read_path):
     return preprocess(write_path, read_path)
 
 
-preprocess("raw", "raw/*.h5")
+if __name__ == "__main__":
+    preprocess("raw", "raw/*.h5")
