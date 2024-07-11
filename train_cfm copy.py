@@ -28,8 +28,11 @@ def main(
         return l + z / n
 
     @jax.jit
-    def cfm_loss(key: PRNGKeyArray, model, source, target):
-        t = spaced_uniform(key, source.shape[0])[:, None, None, None]
+    def cfm_loss(key: PRNGKeyArray, model, target):
+        key_t, key_s = jrandom.split(key)
+
+        source = jrandom.normal(key_s, data.shape)
+        t = spaced_uniform(key_t, source.shape[0])[:, None, None, None]
 
         xt = target * t + source * (1 - t)
         ut = target - source
@@ -49,8 +52,7 @@ def main(
 
     @jax.jit
     def train_step(key, model, data, opt_state):
-        source = jrandom.normal(key, data.shape)
-        loss, grad = jax.value_and_grad(cfm_loss, 1)(key, model, source, data)
+        loss, grad = jax.value_and_grad(cfm_loss, 1)(key, model, data)
 
         updates, opt_state = opt.update(grad, opt_state)
 

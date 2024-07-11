@@ -30,8 +30,11 @@ def main(
         return l + z / n
 
     @jax.jit
-    def cfm_loss(key: PRNGKeyArray, model, source, target):
-        t = spaced_uniform(key, source.shape[0])[:, None, None, None]
+    def cfm_loss(key: PRNGKeyArray, model, target):
+        key_t, key_s = jrandom.split(key)
+
+        source = jrandom.normal(key_s, target.shape)
+        t = spaced_uniform(key_t, source.shape[0])[:, None, None, None]
 
         xt = target * t + source * (1 - t)
         ut = target - source
@@ -57,8 +60,7 @@ def main(
 
     @jax.jit
     def train_step(key, model, data, opt_state):
-        source = jrandom.normal(key, data.shape)
-        loss, grad = jax.value_and_grad(cfm_loss, 1)(key, model, source, data)
+        loss, grad = jax.value_and_grad(cfm_loss, 1)(key, model, data)
 
         updates, opt_state = opt.update(grad, opt_state)
 
@@ -71,7 +73,7 @@ def main(
 
     valid_indicies = memmpy.batch_indicies_split(
         data.shape[0],
-        64,
+        128,
         "valid",
         10,
         drop_remainder=False,
@@ -113,7 +115,7 @@ def main(
                 loss, model, opt_state = train_step(key_train, model, batch, opt_state)
 
                 key, key_valid = jrandom.split(key)
-                loss_valid = cfm_loss(key_valid, model, valid_batch, valid_batch)
+                loss_valid = cfm_loss(key_valid, model, valid_batch)
 
                 wandb.log(
                     {
@@ -122,13 +124,13 @@ def main(
                     }
                 )
     except KeyboardInterrupt:
-        pass
+        fj.save(f"model_{timestamp}.npz", model)
+        wandb.finish()
+        exit()
 
     fj.save(f"model_{timestamp}.npz", model)
 
-    # upload model
-    # wandb.save(f"model_{timestamp}.npz")
-
+    wandb.save(f"model_{timestamp}.npz")
     wandb.finish()
 
 
@@ -139,10 +141,10 @@ if __name__ == "__main__":
     parser.add_argument("--batch_size", type=int, default=32)
     parser.add_argument("--seed", type=int, default=42)
     parser.add_argument("--learning_rate", type=float, default=3e-4)
-    parser.add_argument("--dim", type=int, default=32)
-    parser.add_argument("--dim_patches", type=int, nargs=3, default=[3, 2, 5])
-    parser.add_argument("--nheads", type=int, default=4)
-    parser.add_argument("--nblocks", type=int, default=1)
+    parser.add_argument("--dim", type=int, default=512)
+    parser.add_argument("--dim_patches", type=int, nargs=3, default=[3, 4, 15])
+    parser.add_argument("--nheads", type=int, default=16)
+    parser.add_argument("--nblocks", type=int, default=10)
     args = parser.parse_args()
 
     main(
