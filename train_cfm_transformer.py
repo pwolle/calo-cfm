@@ -20,6 +20,7 @@ def main(
     seed: int,
     learning_rate: float,
     dim: int,
+    dim_fourier: int,
     dim_patches: tuple[int, int, int],
     nheads: int,
     nblocks: int,
@@ -48,7 +49,7 @@ def main(
     model = Transformer.init(
         key_model,
         dim=dim,
-        dim_fourier=4,
+        dim_fourier=dim_fourier,
         dim_patches=dim_patches,
         nheads=nheads,
         nblocks=nblocks,
@@ -142,6 +143,7 @@ if __name__ == "__main__":
     parser.add_argument("--seed", type=int, default=42)
     parser.add_argument("--learning_rate", type=float, default=3e-4)
     parser.add_argument("--dim", type=int, default=512)
+    parser.add_argument("--dim_fourier", type=int, default=16)
     parser.add_argument("--dim_patches", type=int, nargs=3, default=[3, 4, 15])
     parser.add_argument("--nheads", type=int, default=16)
     parser.add_argument("--nblocks", type=int, default=10)
@@ -152,6 +154,7 @@ if __name__ == "__main__":
         seed=args.seed,
         learning_rate=args.learning_rate,
         dim=args.dim,
+        dim_fourier=args.dim_fourier,
         dim_patches=tuple(args.dim_patches),  # type: ignore
         nheads=args.nheads,
         nblocks=args.nblocks,
