@@ -57,12 +57,11 @@ def plot_shower(shower):
     ax: Axes3D = fig.add_subplot(111, projection="3d")  # type: ignore
 
     # Use ax.voxels to plot the voxels
-    print(np.mean(alpha))
     ax.voxels(  # type: ignore
         X,
         Y,
         Z,
-        alpha > 0.01,
+        alpha > 5 * np.mean(alpha),
         facecolors=colors,
         shade=False,
     )
@@ -86,13 +85,13 @@ def plot_shower(shower):
 
 def main():
     import random
-    from _preprocess import preprocess
+    from data._preprocess import preprocess
 
-    showers = preprocess("raw/", "raw/*.h5")
+    showers = preprocess("data/raw/", "data/raw/*.h5")
     i = random.randint(0, len(showers))
     shower = showers[i]
 
-    plot_shower(shower[..., ::5])
+    plot_shower(shower[..., ::3])
     plt.show()
 
 

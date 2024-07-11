@@ -62,7 +62,7 @@ shuffle = memmpy.shuffle_fast(data.shape[0], seed=42)
 losses = []
 
 for _ in range(10):
-    for i, indicies in enumerate(tqdm(batch_indicies, total=int(len(data) * 0.9 / 32))):
+    for i, indicies in enumerate(tqdm(batch_indicies, total=int(len(data) * 0.8 / 32))):
         indicies = shuffle(indicies)
         batch = data[indicies]
 

@@ -1,3 +1,4 @@
+# %%
 import functools
 import os
 
@@ -130,7 +131,7 @@ for i in tqdm.trange(n):
     x = x + model(x, t) / n
 
 
-fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(3, 6))
+fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(6, 3))
 
 key, key_source, key_target = jrandom.split(key, 3)
 

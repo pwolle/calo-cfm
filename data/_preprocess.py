@@ -35,7 +35,6 @@ def preprocess(write_path, read_path):
 
         array = np.memmap(write_file, dtype=np.float32, mode="r")
         array = array.reshape(-1, *shape)
-        print(array.shape)
         return array
 
     vector = memmpy.Vector()
@@ -46,7 +45,7 @@ def preprocess(write_path, read_path):
             n = len(showers)  # type: ignore
 
             for s, e in memmpy.batch_slices(n, 1024 * 8, False):
-                x = showers[s:e]  # type: ignore
+                x: np.ndarray = showers[s:e]  # type: ignore
 
                 x = np.maximum(x, 0)
                 x = np.log(1 + x) / (5.25 / 2)
@@ -57,7 +56,7 @@ def preprocess(write_path, read_path):
                 x = x.astype(np.float32)
 
                 vector.extend(x)
-                break
+                # break
 
             break
 
@@ -66,4 +65,4 @@ def preprocess(write_path, read_path):
 
 
 if __name__ == "__main__":
-    preprocess("raw", "raw/*.h5")
+    preprocess("data/raw", "data/raw/*.h5")
