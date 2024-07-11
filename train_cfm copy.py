@@ -3,7 +3,6 @@ import flarejax as fj
 import jax
 import jax.numpy as jnp
 import jax.random as jrandom
-import matplotlib.pyplot as plt
 import memmpy
 import optax
 from jaxtyping import PRNGKeyArray
@@ -35,7 +34,6 @@ def main(
         xt = target * t + source * (1 - t)
         ut = target - source
 
-        print(xt.shape, t.shape)
         xh = model(xt, t)
         return ((xh - ut) ** 2).mean()
 
@@ -61,17 +59,11 @@ def main(
 
     data = preprocess("data/raw/", "data/raw/*.h5")
 
-    batch_indicies = memmpy.batch_indicies_split(
-        data.shape[0],
-        batch_size,
-        "train",
-        10,
-    )
     shuffle = memmpy.shuffle_fast(data.shape[0], seed=seed)
 
     valid_indicies = memmpy.batch_indicies_split(
         data.shape[0],
-        128,
+        64,
         "valid",
         10,
         drop_remainder=False,
@@ -95,6 +87,14 @@ def main(
 
     try:
         for _ in range(10):
+            batch_indicies = memmpy.batch_indicies_split(
+                data.shape[0],
+                batch_size,
+                "train",
+                10,
+                drop_remainder=True,
+            )
+
             for indicies in tqdm(batch_indicies, total=int(len(data) * 0.8 / 32)):
                 indicies = shuffle(indicies)
                 batch = data[indicies]
@@ -102,13 +102,13 @@ def main(
                 key, key_train = jrandom.split(key)
                 loss, model, opt_state = train_step(key_train, model, batch, opt_state)
 
-                # key, key_valid = jrandom.split(key)
-                # loss_valid = cfm_loss(key_valid, model, valid_batch, valid_batch)
+                key, key_valid = jrandom.split(key)
+                loss_valid = cfm_loss(key_valid, model, valid_batch, valid_batch)
 
                 wandb.log(
                     {
                         "loss": loss,
-                        # "loss_valid": loss_valid,
+                        "loss_valid": loss_valid,
                     }
                 )
     except KeyboardInterrupt:
@@ -126,11 +126,11 @@ if __name__ == "__main__":
     import argparse
 
     parser = argparse.ArgumentParser()
-    parser.add_argument("--batch_size", type=int, default=32)
+    parser.add_argument("--batch_size", type=int, default=8)
     parser.add_argument("--seed", type=int, default=42)
     parser.add_argument("--learning_rate", type=float, default=3e-4)
-    parser.add_argument("--channels", type=int, default=8)
-    parser.add_argument("--depth", type=int, default=1)
+    parser.add_argument("--channels", type=int, default=32)
+    parser.add_argument("--depth", type=int, default=4)
     args = parser.parse_args()
 
     main(

@@ -44,7 +44,7 @@ def preprocess(write_path, read_path):
             showers = f["showers"]
             n = len(showers)  # type: ignore
 
-            for s, e in memmpy.batch_slices(n, 1024 * 8, False):
+            for s, e in memmpy.batch_slices(n, 1024 * 16, False):
                 x: np.ndarray = showers[s:e]  # type: ignore
 
                 x = np.maximum(x, 0)
@@ -58,7 +58,7 @@ def preprocess(write_path, read_path):
                 vector.extend(x)
                 # break
 
-            break
+            # break
 
     vector.save(write_file)
     return preprocess(write_path, read_path)
