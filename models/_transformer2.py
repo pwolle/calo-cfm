@@ -43,26 +43,12 @@ def to_voxels(patches, bx, by, bz) -> jax.Array:
     )
 
 
-def fourier_embedding(x, n):
-    assert n % 2 == 0
-    n = n // 2
-
-    x = x[..., None]
-    x = x * jnp.pi * jnp.minimum(jnp.arange(1, n + 1), 8) / 2
-
-    s = jnp.sin(x)
-    c = jnp.cos(x)
-
-    y = jnp.concatenate([s, c], axis=-1)
-    return jnp.zeros_like(y)
-
-
 def fourier_encode(x, dim: int):
     assert dim % 2 == 0
 
     r = jnp.linspace(0, 1, dim // 2)
 
-    r = (2 * jnp.pi * 10_000) ** r
+    r = (2 * jnp.pi * 1_000) ** r
     x = x[..., None] * r
 
     s = jnp.sin(x)
@@ -100,11 +86,11 @@ class Embedding(fj.Module, replace=True):
         assert x.ndim == 3
         x = to_patches(x, *self.dim_patches)
 
-        t = fourier_embedding(t, self.dim_fourier)
+        t = fourier_encode(t, self.dim_fourier)
         t = jnp.tile(t, x.shape[:-1] + (1,))
 
         c = get_coordinates(*x.shape[:-1])
-        c = jax.vmap(fourier_embedding, (-1, None), -1)(c, self.dim_fourier)
+        c = jax.vmap(fourier_encode, (-1, None), -1)(c, self.dim_fourier)
 
         c = c.reshape(c.shape[:-2] + (-1,))
         x = jnp.concat([x, c, t], axis=-1)
