@@ -24,7 +24,7 @@ def main(
     dim_patches: tuple[int, int, int],
     nheads: int,
     nblocks: int,
-    nepochs: int = 10,
+    nepochs: int,
 ):
     data = preprocess("data/raw/", "data/raw/*.h5")
 
@@ -32,7 +32,7 @@ def main(
 
     valid_indicies = memmpy.batch_indicies_split(
         data.shape[0],
-        128,
+        1024,
         "valid",
         10,
         drop_remainder=False,
@@ -73,15 +73,16 @@ def main(
 
     epoch_steps = int(len(data) * 0.8 / batch_size)
 
-    schedule = optax.warmup_cosine_decay_schedule(
-        init_value=1e-6,
-        peak_value=3e-4,
-        warmup_steps=100,
-        decay_steps=epoch_steps * nepochs,
-        end_value=3e-5,
-    )
+    # schedule = optax.warmup_cosine_decay_schedule(
+    #     init_value=1e-6,
+    #     peak_value=learning_rate,
+    #     warmup_steps=100,
+    #     decay_steps=epoch_steps * nepochs,
+    #     end_value=3e-5,
+    # )
+    schedule = learning_rate
 
-    opt = optax.adam(learning_rate)
+    opt = optax.adam(schedule)
     opt_state = opt.init(model)  # type: ignore
 
     @jax.jit
@@ -151,15 +152,15 @@ if __name__ == "__main__":
     import argparse
 
     parser = argparse.ArgumentParser()
-    parser.add_argument("--batch_size", type=int, default=32)
+    parser.add_argument("--batch_size", type=int, default=128)
     parser.add_argument("--seed", type=int, default=42)
     parser.add_argument("--learning_rate", type=float, default=3e-4)
     parser.add_argument("--dim", type=int, default=512)
     parser.add_argument("--dim_fourier", type=int, default=16)
     parser.add_argument("--dim_patches", type=int, nargs=3, default=[3, 4, 15])
     parser.add_argument("--nheads", type=int, default=16)
-    parser.add_argument("--nblocks", type=int, default=10)
-    parser.add_argument("--nepochs", type=int, default=10)
+    parser.add_argument("--nblocks", type=int, default=8)
+    parser.add_argument("--nepochs", type=int, default=100)
     args = parser.parse_args()
 
     main(

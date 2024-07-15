@@ -7,15 +7,11 @@ data = preprocess("data/raw/", "data/raw/*.h5")
 import matplotlib.pyplot as plt
 import random
 
-i = random.randint(0, len(data))
 
-# R, T, H
+x = data[: 1024 * 32]
+x = x.flatten()
 
-for i in range(45)[::9]:
-    plt.matshow(data[i, :, :, i])
-    plt.show()
+x = x[x > 0]
 
-# %%
-data.shape
-# %%
-9 * 16
+plt.hist(x, bins=100)
+plt.show()
