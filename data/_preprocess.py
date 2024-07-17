@@ -33,7 +33,7 @@ def preprocess(write_path, read_path):
         with h5py.File(glob.glob(read_path)[0], "r") as f:
             shape = f["showers"].shape[1:]  # type: ignore
 
-        array = np.memmap(write_file, dtype=np.float32, mode="r")
+        array = np.memmap(write_file, dtype=np.float64, mode="r")
         array = array.reshape(-1, *shape)
         return array
 
@@ -47,14 +47,11 @@ def preprocess(write_path, read_path):
             for s, e in memmpy.batch_slices(n, 1024 * 16, False):
                 x: np.ndarray = showers[s:e]  # type: ignore
 
-                x = np.maximum(x, 0)
-                x = np.log(1 + x) / (5.25 / 2)
-                x = np.nan_to_num(x, nan=0, posinf=0, neginf=0)
+                # x = np.maximum(x, 0)
+                # x = np.log(1 + x) / (5.25 / 2)
+                # x = np.nan_to_num(x, nan=0, posinf=0, neginf=0)
 
-                x = x - 1
-                x = np.clip(x, -1, 1)
-                x = x.astype(np.float32)
-
+                x = x.astype(np.float64)
                 vector.extend(x)
                 # break
 
@@ -65,4 +62,4 @@ def preprocess(write_path, read_path):
 
 
 if __name__ == "__main__":
-    preprocess("data/raw", "data/raw/*.h5")
+    preprocess("raw", "raw/*.h5")

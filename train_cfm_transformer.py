@@ -1,4 +1,6 @@
 # %%
+import datetime
+
 import flarejax as fj
 import jax
 import jax.numpy as jnp
@@ -8,11 +10,23 @@ import optax
 from jaxtyping import PRNGKeyArray
 from tqdm import tqdm
 
+import wandb
 from data import preprocess
 from models import Transformer
 
-import wandb
-import datetime
+
+def sigmoid_inv(x):
+    return jnp.log(x / (1 - x))
+
+
+@jax.jit
+def scale_data(x):
+    x = x / 300
+    x = jnp.clip(x, 1e-5, 1 - 1e-5)
+    x = sigmoid_inv(x)
+    x = x + 6.5
+    x = x / 2
+    return x.astype(jnp.float32)
 
 
 def main(
@@ -32,7 +46,7 @@ def main(
 
     valid_indicies = memmpy.batch_indicies_split(
         data.shape[0],
-        1024,
+        128,
         "valid",
         10,
         drop_remainder=False,
@@ -47,6 +61,7 @@ def main(
 
     @jax.jit
     def cfm_loss(key: PRNGKeyArray, model, target):
+        target = scale_data(target)
         key_t, key_s = jrandom.split(key)
 
         source = jrandom.normal(key_s, target.shape)
@@ -112,6 +127,8 @@ def main(
     )
 
     try:
+        step = 0
+
         for _ in range(nepochs):
             batch_indicies = memmpy.batch_indicies_split(
                 data.shape[0],
@@ -128,15 +145,19 @@ def main(
                 key, key_train = jrandom.split(key)
                 loss, model, opt_state = train_step(key_train, model, batch, opt_state)
 
-                key, key_valid = jrandom.split(key)
-                loss_valid = cfm_loss(key_valid, model, valid_batch)
+                if step % 100 == 0:
+                    key, key_valid = jrandom.split(key)
+                    loss_valid = cfm_loss(key_valid, model, valid_batch)
 
-                wandb.log(
-                    {
-                        "loss": loss,
-                        "loss_valid": loss_valid,
-                    }
-                )
+                    wandb.log(
+                        {
+                            "loss": loss,
+                            "loss_valid": loss_valid,
+                        },
+                        step=step,
+                    )
+
+                step += 1
     except KeyboardInterrupt:
         fj.save(f"model_{timestamp}.npz", model)
         wandb.finish()
@@ -156,11 +177,11 @@ if __name__ == "__main__":
     parser.add_argument("--seed", type=int, default=42)
     parser.add_argument("--learning_rate", type=float, default=3e-4)
     parser.add_argument("--dim", type=int, default=512)
-    parser.add_argument("--dim_fourier", type=int, default=16)
+    parser.add_argument("--dim_fourier", type=int, default=64)
     parser.add_argument("--dim_patches", type=int, nargs=3, default=[3, 4, 15])
     parser.add_argument("--nheads", type=int, default=16)
     parser.add_argument("--nblocks", type=int, default=8)
-    parser.add_argument("--nepochs", type=int, default=100)
+    parser.add_argument("--nepochs", type=int, default=5)
     args = parser.parse_args()
 
     main(
